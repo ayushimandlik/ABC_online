@@ -134,7 +134,7 @@ class FDMT_block(bf.pipeline.TransformBlock):
                             peak_values[beam_num, box_car, 1] = np.argmax(dm_array)
                             bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c_ts[str(box_car)], op = 'max')
                             time_array = self.box_c_ts[str(box_car)].copy(space = 'system')
-                            peak_values[beam_num, box_car, 1] = np.argmax(time_array)
+                            peak_values[beam_num, box_car, 2] = np.argmax(time_array)
             
                         else:
                             bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c[str(box_car)] , op = 'mean')
@@ -144,7 +144,7 @@ class FDMT_block(bf.pipeline.TransformBlock):
                             peak_values[beam_num, box_car, 1] = np.argmax(dm_array)
                             bf.reduce(self.box_c[str(box_car)], self.box_c_ts[str(box_car)], op = 'max')
                             time_array = self.box_c_ts[str(box_car)].copy(space = 'system')
-                            peak_values[beam_num, box_car, 1] = np.argmax(time_array)
+                            peak_values[beam_num, box_car, 2] = np.argmax(time_array)
             
                 beam_ = np.where(peak_values == peak_values[:,:,0].max())[0][0]
                 beam = (3 * beam_bl[0]) + beam_

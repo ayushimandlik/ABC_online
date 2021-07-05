@@ -105,14 +105,9 @@ class FDMT_block(bf.pipeline.TransformBlock):
                 beam_blocks.append(np.concatenate(np.argwhere( self.furby_predictions == beam ))[::2]) # Set the threshold values here
     
             in_nframe  = ispan.nframe
-            print(ospan.data.shape)
-            idata = bf.ndarray.copy(self.block_full[:, :, :, self.timechunksize : self.timechunksize * 2], space = 'cuda')
-            print(idata.shape)
-#            idata = bf.ndarray.copy(self.block_full[0, (3 * beam_bl[0]) + beam_num, :, self.timechunksize : self.timechunksize * 2 ], space = 'cuda')
             odata = ospan.data
             out_nframe = in_nframe
             freq = np.arange(806.25, 856.25, 0.09765625)*1e6
-            print(beam_blocks)
     
             ### peak_values is array containing information about peak values in terms of (beam, boxcar, time_index, dm_index)
             for ob_index, beam_bl in enumerate(beam_blocks):
@@ -122,10 +117,8 @@ class FDMT_block(bf.pipeline.TransformBlock):
                 peak_values = np.zeros((3, 8, 3), dtype = np.float32)
     
                 for beam_num in range(3):
-                    #self.f.execute(self.block_full[0, (3 * beam_bl[0]) + beam_num, :, self.timechunksize : self.timechunksize * 2 ], self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], negative_delays = True) 
-                    print(idata[0, (3 * beam_bl[0]) + beam_num, :, :self.timechunksize].shape)
-                    self.f.execute(idata[0, (3 * beam_bl[0]) + beam_num, :, :self.timechunksize], self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], negative_delays = True)
-#                    self.f.execute(self.block_full[0, (3 * beam_bl[0]) + beam_num, :, self.timechunksize : self.timechunksize * 2 ], self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], negative_delays = True) 
+                    self.f.execute(self.block_full[0, (3 * beam_bl[0]) + beam_num, :, self.timechunksize : self.timechunksize * 2 ], 
+                        self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], negative_delays = True) 
                     for box_car in range(8):
                         if box_car == 0:
                             bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c_dm, op = 'max')
@@ -134,7 +127,7 @@ class FDMT_block(bf.pipeline.TransformBlock):
                             peak_values[beam_num, box_car, 1] = np.argmax(dm_array)
                             bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c_ts[str(box_car)], op = 'max')
                             time_array = self.box_c_ts[str(box_car)].copy(space = 'system')
-                            peak_values[beam_num, box_car, 1] = np.argmax(time_array)
+                            peak_values[beam_num, box_car, 2] = np.argmax(time_array)
             
                         else:
                             bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c[str(box_car)] , op = 'mean')
@@ -144,9 +137,11 @@ class FDMT_block(bf.pipeline.TransformBlock):
                             peak_values[beam_num, box_car, 1] = np.argmax(dm_array)
                             bf.reduce(self.box_c[str(box_car)], self.box_c_ts[str(box_car)], op = 'max')
                             time_array = self.box_c_ts[str(box_car)].copy(space = 'system')
-                            peak_values[beam_num, box_car, 1] = np.argmax(time_array)
+                            peak_values[beam_num, box_car, 2] = np.argmax(time_array)
             
                 beam_ = np.where(peak_values == peak_values[:,:,0].max())[0][0]
+                print(peak_values)
+                np.save('peak_values', peak_values)
                 beam = (3 * beam_bl[0]) + beam_
                 final_box_car = np.where(peak_values == peak_values[:,:,0].max())[1][0]
                 
