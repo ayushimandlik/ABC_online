@@ -26,14 +26,12 @@ DEDISP_KERNEL = """
 o(1, b, f, t) = i(1, b, f, t + td(1, 1, f, 1));
 """
 
-
-
 class FDMT_block(bf.pipeline.TransformBlock):
     def __init__(self, iring, *args, **kwargs):
         super(FDMT_block, self).__init__(iring, *args, **kwargs)
         self.kdm       = 4.148741601e3 # MHz**2 cm**3 s / pc
         self.dm_units  = 'pc cm^-3'
-        self.timechunksize = 8192 
+        self.timechunksize = 8192
         self.n_iter = 0
         self.num_beam_blocks = 3 
 
@@ -61,8 +59,9 @@ class FDMT_block(bf.pipeline.TransformBlock):
         ohdr['_tensor']['shape'][1]  = self.num_beam_blocks # for the number of beams across which to search for the pulse.
         self.f.init(512, self.timechunksize, self.reffreq, self.freq_step)
 
-        self.dm_array = bf.ndarray(shape = (self.timechunksize, 1), dtype = np.float32, space = 'cuda')
-        self.time_array = bf.ndarray(shape = (1, self.timechunksize), dtype = np.float32, space = 'system')
+#        self.dm_array = bf.ndarray(shape = (self.timechunksize, 1), dtype = np.float32, space = 'system')
+#        self.time_array = bf.ndarray(shape = (1, self.timechunksize), dtype = np.float32, space = 'system')
+# works in cuda space too, but trying to see if it can be used with system memory so less cuda space is used.
         self.block_full = bf.ndarray(shape = (1, 24, 512, 3 * self.timechunksize), dtype = np.float32, space = 'system')
         self.td = bf.ndarray(shape = (1, 1, 512, 1), dtype = int, space = 'cuda')
         self.beam_data = bf.ndarray(shape = (1, 5, 512, 3 * self.timechunksize), dtype = np.float32, space = 'cuda')
@@ -76,29 +75,26 @@ class FDMT_block(bf.pipeline.TransformBlock):
         self.box_c_dm = bf.ndarray(shape = (self.timechunksize, 1), dtype = np.float32, space = 'cuda')
         self.dedispersed = bf.ndarray(shape = (1, 5, 512, 128), dtype = np.float32, space = 'cuda')
         self.candidate = bf.ndarray(shape = (1, 3, 5, 256, 128), dtype = np.float32, space = 'cuda')
-        self.bx = bf.ndarray(shape = (self.timechunksize, self.timechunksize), dtype = np.float32, space = 'cuda')
-        self.bx_ts = bf.ndarray(shape = (1 ,self.timechunksize), dtype = np.float32, space = 'cuda')
-
         
-#        self.bx_0 = bf.ndarray(shape = (self.timechunksize, self.timechunksize), dtype = np.float32, space = 'cuda')
-#        self.bx_1 = bf.ndarray(shape = (self.timechunksize, self.timechunksize // 2), dtype = np.float32, space = 'cuda')
-#        self.bx_2 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 4), dtype = np.float32, space = 'cuda')
-#        self.bx_3 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 8), dtype = np.float32, space = 'cuda')
-#        self.bx_4 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 16), dtype = np.float32, space = 'cuda')
-#        self.bx_5 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 32), dtype = np.float32, space = 'cuda')
-#        self.bx_6 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 64), dtype = np.float32, space = 'cuda')
-#        self.bx_7 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 128), dtype = np.float32, space = 'cuda')
-#        self.box_c = {'0': self.bx_0, '1': self.bx_1, '2': self.bx_2, '3': self.bx_3, '4': self.bx_4, '5': self.bx_5, '6': self.bx_6, '7': self.bx_7}
-#
-#        self.bx_0_ts = bf.ndarray(shape = (1 ,self.timechunksize), dtype = np.float32, space = 'cuda')
-#        self.bx_1_ts = bf.ndarray(shape = (1 ,self.timechunksize // 2), dtype = np.float32, space = 'cuda')
-#        self.bx_2_ts = bf.ndarray(shape = (1 ,self.timechunksize // 4), dtype = np.float32, space = 'cuda')
-#        self.bx_3_ts = bf.ndarray(shape = (1 ,self.timechunksize // 8), dtype = np.float32, space = 'cuda')
-#        self.bx_4_ts = bf.ndarray(shape = (1 ,self.timechunksize // 16), dtype = np.float32, space = 'cuda')
-#        self.bx_5_ts = bf.ndarray(shape = (1 ,self.timechunksize // 32), dtype = np.float32, space = 'cuda')
-#        self.bx_6_ts = bf.ndarray(shape = (1 ,self.timechunksize // 64), dtype = np.float32, space = 'cuda')
-#        self.bx_7_ts = bf.ndarray(shape = (1 ,self.timechunksize // 128), dtype = np.float32, space = 'cuda')
-#        self.box_c_ts = {'0': self.bx_0_ts, '1': self.bx_1_ts, '2': self.bx_2_ts, '3': self.bx_3_ts, '4': self.bx_4_ts, '5': self.bx_5_ts, '6': self.bx_6_ts, '7': self.bx_7_ts}
+        self.bx_0 = bf.ndarray(shape = (self.timechunksize, self.timechunksize), dtype = np.float32, space = 'cuda')
+        self.bx_1 = bf.ndarray(shape = (self.timechunksize, self.timechunksize // 2), dtype = np.float32, space = 'cuda')
+        self.bx_2 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 4), dtype = np.float32, space = 'cuda')
+        self.bx_3 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 8), dtype = np.float32, space = 'cuda')
+        self.bx_4 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 16), dtype = np.float32, space = 'cuda')
+        self.bx_5 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 32), dtype = np.float32, space = 'cuda')
+        self.bx_6 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 64), dtype = np.float32, space = 'cuda')
+        self.bx_7 = bf.ndarray(shape = (self.timechunksize , self.timechunksize // 128), dtype = np.float32, space = 'cuda')
+        self.box_c = {'0': self.bx_0, '1': self.bx_1, '2': self.bx_2, '3': self.bx_3, '4': self.bx_4, '5': self.bx_5, '6': self.bx_6, '7': self.bx_7}
+
+        self.bx_0_ts = bf.ndarray(shape = (1 ,self.timechunksize), dtype = np.float32, space = 'cuda')
+        self.bx_1_ts = bf.ndarray(shape = (1 ,self.timechunksize // 2), dtype = np.float32, space = 'cuda')
+        self.bx_2_ts = bf.ndarray(shape = (1 ,self.timechunksize // 4), dtype = np.float32, space = 'cuda')
+        self.bx_3_ts = bf.ndarray(shape = (1 ,self.timechunksize // 8), dtype = np.float32, space = 'cuda')
+        self.bx_4_ts = bf.ndarray(shape = (1 ,self.timechunksize // 16), dtype = np.float32, space = 'cuda')
+        self.bx_5_ts = bf.ndarray(shape = (1 ,self.timechunksize // 32), dtype = np.float32, space = 'cuda')
+        self.bx_6_ts = bf.ndarray(shape = (1 ,self.timechunksize // 64), dtype = np.float32, space = 'cuda')
+        self.bx_7_ts = bf.ndarray(shape = (1 ,self.timechunksize // 128), dtype = np.float32, space = 'cuda')
+        self.box_c_ts = {'0': self.bx_0_ts, '1': self.bx_1_ts, '2': self.bx_2_ts, '3': self.bx_3_ts, '4': self.bx_4_ts, '5': self.bx_5_ts, '6': self.bx_6_ts, '7': self.bx_7_ts}
         return ohdr
         
     def on_data(self, ispan, ospan):
@@ -106,8 +102,9 @@ class FDMT_block(bf.pipeline.TransformBlock):
             self.predictions = np.load('Direct_classifier_logs_' + str(self.n_iter - 1) + '.npy')
             self.furby_predictions = self.predictions[:, 1, :]
             beam_blocks = [] 
+            #### TODO will be replaced by a condition which will decide on whether any of this should happen. ####
             for beam in sorted(np.ravel(self.furby_predictions), reverse = True)[:self.num_beam_blocks]:
-                beam_blocks.append(np.concatenate(np.argwhere( self.furby_predictions == beam ))[::2]) # Set the threshold values here
+                beam_blocks.append(np.concatenate(np.argwhere( self.furby_predictions == beam ))[::3]) # Set the threshold values here
     
             in_nframe  = ispan.nframe
             odata = ospan.data
@@ -130,31 +127,25 @@ class FDMT_block(bf.pipeline.TransformBlock):
                     for box_car in range(8):
                         if box_car == 0:
                             bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c_dm, op = 'max')
-                            print(self.box_c_dm.shape)
-                            print(self.dm_array.shape)
                             # barfs when run twice. WHY?!
-#                            dm_array = self.box_c_dm.copy(space = 'system')
-
-                            copy_array(self.dm_array ,self.box_c_dm)
-                            print('copied')
-                            peak_values[beam_num, box_car, 0] = self.dm_array.max()
-                            peak_values[beam_num, box_car, 1] = np.argmax(self.dm_array)
-                            bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_ts, op = 'max')
-                            copy_array(self.time_array, self.box_ts)
-                            peak_values[beam_num, box_car, 2] = np.argmax(self.time_array)
+                            dm_array = self.box_c_dm.copy(space = 'system')
+                            #copy_array(self.dm_array ,self.box_c_dm)
+                            peak_values[beam_num, box_car, 0] = dm_array.max()
+                            peak_values[beam_num, box_car, 1] = np.argmax(dm_array)
+                            bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c_ts[str(box_car)], op = 'max')
+                            time_array = self.box_c_ts[str(box_car)].copy(space = 'system')
+                            peak_values[beam_num, box_car, 2] = np.argmax(time_array)
                         else:
-                            #bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c[str(box_car)] , op = 'mean')
-                            bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c['0'][:, :self.timechunksize // (2**box_car)] , op = 'mean')
-                            bf.reduce(self.box_c[:, :self.timechunksize // (2**box_car)], self.box_c_dm, op = 'max')
-                            copy_array(self.dm_array ,self.box_c_dm)
-                            #dm_array = self.box_c_dm.copy(space = 'system')
+                            bf.reduce(self.fdmt_block[0, (3 * ob_index) + beam_num, :, :], self.box_c[str(box_car)] , op = 'mean')
+                            bf.reduce(self.box_c[str(box_car)], self.box_c_dm, op = 'max')
+                            dm_array = self.box_c_dm.copy(space = 'system')
 #                            copy_array(dm_array, self.box_c_dm)
-                            peak_values[beam_num, box_car, 0] = self.dm_array.max()
-                            peak_values[beam_num, box_car, 1] = np.argmax(self.dm_array)
-                            bf.reduce(self.box_c[:, :self.timechunksize // (2**box_car)], self.box_ts[0, :self.timechunksize // (2**box_car)], op = 'max')
+                            peak_values[beam_num, box_car, 0] = dm_array.max()
+                            peak_values[beam_num, box_car, 1] = np.argmax(dm_array)
+                            bf.reduce(self.box_c[str(box_car)], self.box_c_ts[str(box_car)], op = 'max')
 #                            self.time_array = np.zeros((1, 8192))
-                            self.time_array[0, :self.timechunksize // (2**box_car)] = self.box_c_ts[0, :self.timechunksize // (2**box_car)].copy(space = 'system')
-                            peak_values[beam_num, box_car, 2] = np.argmax(self.time_array[0, :self.timechunksize // (2**box_car)])
+                            time_array = self.box_c_ts[str(box_car)].copy(space = 'system')
+                            peak_values[beam_num, box_car, 2] = np.argmax(time_array)
             
                 beam_ = np.where(peak_values == peak_values[:,:,0].max())[0][0]
                 print(peak_values)
@@ -202,7 +193,7 @@ class FDMT_block(bf.pipeline.TransformBlock):
                 print(self.td.shape)
                 print(self.beam_data[:, :, :, tstart_s: tstop_s].shape)
 
-
+# Change in Kernel, as the decimation for time should depend on the width determined. Reducing after dedispersion makes sense as delay depends on 512 channels. Can be changed.
                 bf.map(DEDISP_KERNEL, data={'o': self.beam_data, 'i': self.beam_data, 'td': self.td}, axis_names = ['t', 'b', 'f', 'ft'], shape = (1, 5, 512, 3 * self.timechunksize))
                 print(self.beam_data[:, :, :, tstart_s: tstop_s].shape)
                 if width > 1:

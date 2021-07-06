@@ -12,7 +12,7 @@ from skimage.transform import resize
 from models_network_architecture import models
 import tensorflow as tf
 ### https://stackoverflow.com/questions/34199233/how-to-prevent-tensorflow-from-allocating-the-totality-of-a-gpu-memory ###
-gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.2)
+gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.5)
 sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
 #import sys, os
 #os.environ["CUDA_VISIBLE_DEVICES"]="1"

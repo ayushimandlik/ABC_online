@@ -13,9 +13,9 @@ from pprint import pprint
 from datetime import datetime
 import numpy as np
 #from fdmt_block_blocks import FDMT
-
+from fdmt_block_blocks_freq_in_kernal import FDMT
 #from fdmt_block_blocks_v1 import FDMT
-from fdmt_block_blocks_getArgMax import FDMT
+#from fdmt_block_blocks_getArgMax import FDMT
 from NormaliseBlock import normalise
 from glob import glob
 import time
