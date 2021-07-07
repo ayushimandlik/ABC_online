@@ -16,7 +16,7 @@ import numpy as np
 #from fdmt_block import FDMT
 #from fdmt_block_blocks_getArgMax import FDMT
 from fdmt_block_blocks_freq_in_kernal import FDMT
-from fdmt_block_blocks_justfdmt_working_version import FDMT
+#from fdmt_block_blocks_justfdmt_working_version import FDMT
 from NormaliseBlock import normalise
 from glob import glob
 import time

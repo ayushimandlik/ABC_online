@@ -19,6 +19,7 @@ from fdmt_block_blocks_freq_in_kernal import FDMT
 from NormaliseBlock import normalise
 from glob import glob
 import time
+from keras.models import model_from_json
 
 
 #class SaveStuffBlock(bf.pipeline.SinkBlock):
@@ -72,6 +73,18 @@ if __name__ == "__main__":
     hdr_callback = dada_dict_to_bf_dict
     model = load_model('/home/amandlik/ABC_direct_classifier/configa.hdf5')
     model.summary()
+    
+    #json_file = open('/home/amandlik/ABC_scripts/model.json', 'r')
+    #print("opened json file")
+    #loaded_model_json = json_file.read()
+    #json_file.close()
+    #model1 = model_from_json(loaded_model_json)
+    #model1.load_weights("/home/amandlik/ABC_scripts/weights.best.5D_FINAL_learning_rate_0.001_batch_150_epochs_140.hdf5")
+    #model1.summary()
+
+    #model1 = load_model("/home/amandlik/ABC_scripts/weights.best.5D_FINAL_learning_rate_0.001_batch_150_epochs_140.hdf5")
+    #model1.summary()
+
 
     # Read in the data (either from a DADA buffer, or from disk)
     if args.filename is None:
@@ -92,13 +105,17 @@ if __name__ == "__main__":
         a_gpu  = bf.blocks.transpose(a_gpu, ['time', 'batch', 'freq', 'fine_time', 'fine_beam'])
         a_gpu = bf.blocks.reduce(a_gpu, 'freq', 2, op='mean')
         adjbeam_classify(a_gpu, model)
+        PrintStuffBlock(a_gpu, 'a')
+        print(datetime.now() - start)
         b_gpu_sft =  bf.blocks.transpose(n_gpu, ['time','beam','freq', 'fine_time'])
 #        SaveStuffBlock(b_gpu_sft)
         FDMT(b_gpu_sft)
 
  #       print(datetime.now() - start)
 
+ #   print(bf.get_default_pipeline().dot_graph())
     bf.get_default_pipeline().shutdown_on_signals()
+    #bf.get_default_pipeline().dot_graph()
     bf.get_default_pipeline().run()
 
                                   

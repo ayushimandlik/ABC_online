@@ -263,6 +263,7 @@ class ABClassify(bf.pipeline.SinkBlock):
         print("Direct classifier looking at block: ")
         print(self.n_iter)
         np.save('Direct_classifier_logs_' + str(self.n_iter), predictions)
+
         self.n_iter += 1
         
 def adjbeam_classify(iring, model, outdir='./', prefix='abc-results', *args, **kwargs):
