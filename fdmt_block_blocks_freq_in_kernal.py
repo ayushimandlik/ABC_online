@@ -20,9 +20,9 @@ DEDISP_KERNEL = """
 // input i (the data) has shape 5, 512, 3x8192
 // time delay td (the frequency-dependent offset to the first time sample to select) has shape (1, 512, 1)
 // Compute o = i shifted by td and averaged by a factor of 1
-// The shape of the output is (5, 256, 3x8192)
+// The shape of the output is (5, 512, 3x8192)
 // we have defined the axis names as t, b, ft, f
-o(b, f, ft) = i(b, f, ft + td(1, f, 1));
+o(b, f, ft) = i(b, f, (ft + td(1, f, 1)) % (3 * 8192) );
 """
 
 class FDMT_block(bf.pipeline.TransformBlock):
@@ -57,13 +57,12 @@ class FDMT_block(bf.pipeline.TransformBlock):
         #self.dm_values = bf.ndarray(shape = (self.timechunksize, 1), dtype = np.float32, space = 'cuda')
         self.block_full = bf.ndarray(shape = (1, 24, 512, 3 * self.timechunksize), dtype = np.float32, space = 'system')
         self.td = bf.ndarray(shape = (1, 512, 1), dtype = np.uint16, space = 'cuda')
-#        self.beam_data = bf.ndarray(shape = (1, 5, 512, 3 * self.timechunksize), dtype = np.float32, space = 'cuda')
-        #self.data = bf.ndarray(shape = (1, 5, 512, 3 * self.timechunksize), dtype = np.float32, space = 'cuda')
 
 #        self.block_N_1 = bf.ndarray(shape = (1, 24, 512, 8192), dtype = np.float32, space = 'system') 
 #        self.block_N_2 = bf.ndarray(shape = (1, 24, 512, 8192), dtype = np.float32, space = 'system') 
         self.fdmt_block = bf.ndarray(shape = (1, 3, self.timechunksize, self.timechunksize), dtype = np.float32, space = 'cuda')
         self.time_block = bf.ndarray(shape = (512, 16384), dtype = np.float32, space = 'cuda')
+
         self.idata = bf.ndarray(shape = (512, 8192), dtype = np.float32, space = 'cuda')
 
         self.box_c_dm = bf.ndarray(shape = (self.timechunksize, 1), dtype = np.float32, space = 'cuda')
@@ -96,8 +95,10 @@ class FDMT_block(bf.pipeline.TransformBlock):
         odata = ospan.data
         if self.n_iter >= 2:
         #    odata = ospan.data
+            while not os.path.exists('Direct_classifier_logs_' + str(self.n_iter - 1) + '.npy'):
+                ptime.sleep(0.01)
             self.predictions = np.load('Direct_classifier_logs_' + str(self.n_iter - 1) + '.npy')
-            self.furby_predictions = self.predictions[:, 1, :]
+            self.furby_predictions = self.predictions[0, :, 1, :]
             beam_blocks = [] 
             for beam in sorted(np.ravel(self.furby_predictions), reverse = True)[:self.num_beam_blocks]:
                 beam_blocks.append(np.concatenate(np.argwhere( self.furby_predictions == beam ))[::2]) # Set the threshold values here
@@ -179,6 +180,8 @@ class FDMT_block(bf.pipeline.TransformBlock):
 
                 copy_array(self.td, delay_samples)
                 beam = 15
+   #             for p in range(5):
+   #                 copy_array(self.time_block, self.block_full[0, p+11, :, :16384])
 
                 if beam > 1 and beam < 21:
                     copy_array(self.dedispersed, self.block_full[0, (beam - 2):(beam + 3), :, :])
@@ -194,16 +197,18 @@ class FDMT_block(bf.pipeline.TransformBlock):
                         #self.time_block: 512, 16384.
                         print(self.block_full[0, (beam + adj_beam - 2), :, tstart_dmt:tstop_dmt].shape)
                         print(self.time_block.shape)
+                        print(adj_beam)
+                        print(beam + adj_beam - 2)
+
                         copy_array(self.time_block, self.block_full[0, (beam + adj_beam - 2), :, tstart_dmt:tstop_dmt])
+                        self.dmt.execute(self.time_block, self.dmtime)
 
+                       # #self.dmt.execute(data, self.dmtime, negative_delays = True)
+                       # print(int(dm_index) - 128)
 
-                        self.dmt.execute(self.time_block, self.dmtime, negative_delays = True)
-                        #self.dmt.execute(data, self.dmtime, negative_delays = True)
-                        print(int(dm_index) - 128)
-
-                        print(tstart_dmt2, tstop_dmt2)
+                       # print(tstart_dmt2, tstop_dmt2)
                         if dm_index < 128:
-                            # For dm < 58.1.
+                           # For dm < 58.1.
                             print('here')
                             print(self.dmtime[0: 256, tstart_dmt2:tstop_dmt2].shape)
                             print(odata[0, ob_index, 1, adj_beam, :, :].shape)

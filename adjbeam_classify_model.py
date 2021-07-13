@@ -19,12 +19,12 @@ from bifrost.ndarray import copy_array
 #os.environ["CUDA_VISIBLE_DEVICES"]="1"
 #from tensorflow.compat.v1.keras.backend import set_session
 #config = tf.ConfigProto(device_count = {'GPU': 1}
-#config = tf.compat.v1.ConfigProto(device_count = {'GPU': 0})
+#config = tf.compat.v1.ConfigProto(device_count = {'GPU': 1})
 #config.gpu_options.visible_device_list = "1"
 #gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.5)
 #sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
 #config.gpu_options.allow_growth=True
-##set_session(tf.compat.v1.Session(config=config))
+#set_session(tf.compat.v1.Session(config=config))
 from datetime import datetime
 import matplotlib.pyplot as plt
 
@@ -80,22 +80,20 @@ class Direct_predict():
         for j in range(self.time_shape // self.nsamps):
             y_pred_keras[0, :, :, j] = self.model.predict( [ self.normalise(self.data[0, :, :, (2048 * j) : (j + 1) * 2048, 0]).reshape(self.batch_size, 256, 2048, 1), self.normalise(self.data[0, :, :, (2048 * j) : (j + 1) * 2048, 1]).reshape(self.batch_size, 256, 2048, 1), self.normalise(self.data[0, :, :, (2048 * j) : (j + 1) * 2048, 2]).reshape(self.batch_size, 256, 2048, 1)])
 
-
         if self.n_iter != 0:
             for j in range(self.time_shape // self.nsamps):
                 copy_array(self.data[0, :, :, 1024:], self.data[0, :, :, : (8192 - 1024)])
                 copy_array(self.data[0, :, :, :1024], self.prev_run)
                 y_pred_keras[1, :, :, j] = self.model.predict( [ self.normalise(self.data[0, :, :, (2048 * j) : (j + 1) * 2048, 0]).reshape(self.batch_size, 256, 2048, 1), self.normalise(self.data[0, :, :, (2048 * j) : (j + 1) * 2048, 1]).reshape(self.batch_size, 256, 2048, 1), self.normalise(self.data[0, :, :, (2048 * j) : (j + 1) * 2048, 2]).reshape(self.batch_size, 256, 2048, 1)])
-        
-        np.save('blocks_' + str(self.n_iter), self.data)
         return y_pred_keras
 
 class ABClassify(bf.pipeline.SinkBlock):
-    def __init__(self, iring, outdir='./', prefix='abc-results', *args, **kwargs):
+    def __init__(self, iring, model, outdir='./', prefix='abc-results', *args, **kwargs):
         super(ABClassify, self).__init__(iring, *args, **kwargs)
         self.outdir = outdir
         self.seq_idx = 0
         self.n_iter = 0
+        self.model = model
 
     def on_sequence(self, iseq):
         self.seq_idx += 1
@@ -103,7 +101,7 @@ class ABClassify(bf.pipeline.SinkBlock):
         ihdr = iseq.header
         itensor = ihdr['_tensor']
         self.batch_size = 8
-        self.model = load_model('/home/amandlik/ABC_direct_classifier/configa.hdf5') 
+#        self.model = load_model('/home/amandlik/ABC_direct_classifier/configa.hdf5') 
 
 #        self.data_idx = 0
         #self._meta = {}
@@ -159,5 +157,5 @@ class ABClassify(bf.pipeline.SinkBlock):
         copy_array(self.prev_run, self.data[0, :, :, (8192 - 1024):])
         self.n_iter += 1
         
-def adjbeam_classify(iring, outdir='./', prefix='abc-results', *args, **kwargs):
-    return ABClassify(iring, outdir, prefix, *args, **kwargs)
+def adjbeam_classify(iring, model, outdir='./', prefix='abc-results', *args, **kwargs):
+    return ABClassify(iring, model, outdir, prefix, *args, **kwargs)
